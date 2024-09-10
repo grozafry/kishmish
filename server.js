@@ -12,6 +12,10 @@ const io = socketIo(server, {
   }
 });
 
+app.get('/', (req, res) => {
+  res.send('Hello, welcome to the Node.js app!');
+});
+
 const waitingUsers = new Map(); // Map of users waiting to be matched, grouped by interests
 const noInterestUsers = []; // Array of users with no selected interests
 
