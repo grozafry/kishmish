@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://43.204.130.30",
+    origin: "http://43.204.130.30:3000",
     // origin: "https://kishmish-ui.vercel.app",
     methods: ["GET", "POST"]
   }
