@@ -12,7 +12,8 @@ const io = socketIo(server, {
     origin: (origin, callback) => {
       // List of allowed origins
       const allowedOrigins = [
-        "http://43.204.130.30:3000",
+        "http://43.204.130.30:9922",
+        "http://43.204.130.30",
         "https://kishmish-ui.vercel.app",
         "http://localhost:3000"
       ];
