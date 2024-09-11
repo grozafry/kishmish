@@ -6,8 +6,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    // origin: "http://localhost:3000",
-    origin: "https://kishmish-ui.vercel.app",
+    origin: "http://43.204.130.30",
+    // origin: "https://kishmish-ui.vercel.app",
     methods: ["GET", "POST"]
   }
 });
@@ -126,6 +126,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// const PORT = process.env.PORT || 4000;
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
+// const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
