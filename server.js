@@ -4,6 +4,9 @@ const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+
+let onlineUsers = new Set();
+
 const io = socketIo(server, {
   cors: {
     origin: (origin, callback) => {
@@ -120,6 +123,9 @@ function disconnectPartner(socket) {
 
 io.on('connection', (socket) => {
   console.log(`New user connected ${socket.id}`);
+  onlineUsers.add(socket.id);
+
+  io.emit('totalUsersCount', onlineUsers.size);
   
   socket.interests = [];
 
@@ -145,6 +151,10 @@ io.on('connection', (socket) => {
     console.log(`User disconnected: ${socket.id}`);
     removeFromWaitingList(socket);
     disconnectPartner(socket);
+
+    onlineUsers.delete(socket.id);
+    io.emit('totalUsersCount', onlineUsers.size);
+
   });
 });
 
