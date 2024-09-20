@@ -1,28 +1,34 @@
 const express = require('express');
-const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const socketIo = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const server = http.createServer(app);
+
+const options = {
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem')
+};
+
+const server = https.createServer(options, app);
 
 let onlineUsers = new Set();
 
 const io = socketIo(server, {
   cors: {
     origin: (origin, callback) => {
-      // List of allowed origins
       const allowedOrigins = [
+        "http://192.168.1.2:5000",
         "http://43.204.130.30:9922",
         "http://43.204.130.30",
         "https://kishmish-ui.vercel.app",
         "http://localhost:3000"
       ];
 
-      if (allowedOrigins.includes(origin) || !origin) {
-        // Allow requests with no origin (e.g., Postman or server-to-server requests)
+      if (1 < 2) {
         callback(null, true);
       } else {
-        // Reject requests from non-allowed origins
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -34,8 +40,8 @@ app.get('/', (req, res) => {
   res.send('Hello, welcome to the Node.js app!');
 });
 
-const waitingUsers = new Map(); // Map of users waiting to be matched, grouped by interests
-const noInterestUsers = []; // Array of users with no selected interests
+const waitingUsers = new Map();
+const noInterestUsers = [];
 
 function findMatch(socket) {
   // If the user has no interests
@@ -122,6 +128,54 @@ function disconnectPartner(socket) {
   }
 }
 
+
+function initializeVoiceCall(socket) {
+  socket.on('voice-call-request', () => {
+    if (socket.partner) {
+      const callId = uuidv4();
+      socket.partner.emit('voice-call-incoming', { callId });
+      socket.emit('voice-call-outgoing', { callId });
+    }
+  });
+
+  socket.on('voice-call-accepted', ({ callId }) => {
+    if (socket.partner) {
+      socket.partner.emit('voice-call-connected', { callId });
+      socket.emit('voice-call-connected', { callId });
+    }
+  });
+
+  socket.on('voice-call-rejected', () => {
+    if (socket.partner) {
+      socket.partner.emit('voice-call-ended');
+    }
+  });
+
+  socket.on('voice-call-ended', () => {
+    if (socket.partner) {
+      socket.partner.emit('voice-call-ended');
+    }
+  });
+
+  socket.on('ice-candidate', (candidate) => {
+    if (socket.partner) {
+      socket.partner.emit('ice-candidate', candidate);
+    }
+  });
+
+  socket.on('offer', (offer) => {
+    if (socket.partner) {
+      socket.partner.emit('offer', offer);
+    }
+  });
+
+  socket.on('answer', (answer) => {
+    if (socket.partner) {
+      socket.partner.emit('answer', answer);
+    }
+  });
+}
+
 io.on('connection', (socket) => {
   console.log(`New user connected ${socket.id}`);
   onlineUsers.add(socket.id);
@@ -130,8 +184,10 @@ io.on('connection', (socket) => {
   
   socket.interests = [];
 
+  initializeVoiceCall(socket);
+
   socket.on('set interests', (interests) => {
-    removeFromWaitingList(socket); // Remove from any previous waiting lists
+    removeFromWaitingList(socket);
     socket.interests = interests;
     findMatch(socket) || addToWaitingList(socket);
   });
@@ -145,7 +201,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect partner', () => {
     removeFromWaitingList(socket);
     disconnectPartner(socket);
-    // Removed: findMatch(socket) || addToWaitingList(socket);
   });
 
   socket.on('disconnect', () => {
@@ -155,10 +210,12 @@ io.on('connection', (socket) => {
 
     onlineUsers.delete(socket.id);
     io.emit('totalUsersCount', onlineUsers.size);
-
   });
 });
 
 const PORT = process.env.PORT || 4000;
 // const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on https://0.0.0.0:${PORT}`);
+});
